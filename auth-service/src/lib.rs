@@ -24,7 +24,7 @@ impl Application {
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
-        println!("listening on {}", self.address);
+        println!("listening on http://{}", self.address);
         self.server.await
     }
 }
