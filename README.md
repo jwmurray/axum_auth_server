@@ -36,3 +36,4 @@ visit http://localhost:8000 and http://localhost:3000# Test trigger
 # Force new workflow
 # Trigger SSL deployment
 # Fix ACME email
+Update ACME_EMAIL and trigger
