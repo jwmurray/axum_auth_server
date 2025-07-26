@@ -1,7 +1,6 @@
 use std::env;
 
 use askama::Template;
-use auth_service::Application;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
@@ -14,19 +13,18 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    // let app = Router::new()
-    //     .nest_service("/assets", ServeDir::new("assets"))
-    //     .route("/", get(root))
-    //     .route("/login", get(login))
-    //     .route("/protected", get(protected));
-
-    let app = Application::build("0.0.0.0:3000")
-        .await
-        .expect("Failed to build application");
+    let app = Router::new()
+        .nest_service("/assets", ServeDir::new("assets"))
+        .route("/", get(root))
+        .route("/login", get(login))
+        .route("/protected", get(protected));
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
 
-    println!("listening on http://{}", listener.local_addr().unwrap());
+    println!(
+        "App service listening on http://{}",
+        listener.local_addr().unwrap()
+    );
     axum::serve(listener, app).await.unwrap();
 }
 
