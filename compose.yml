@@ -31,10 +31,12 @@ services:
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.app.rule=Host(`${DOMAIN:-do.gardenway.org}`)"
+      - "traefik.http.routers.app.rule=Host(`${DROPLET_IP:-do.gardenway.org}`) && PathPrefix(`/app`)"
       - "traefik.http.routers.app.entrypoints=websecure"
       - "traefik.http.routers.app.tls.certresolver=letsencrypt"
       - "traefik.http.services.app.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.app-stripprefix.stripprefix.prefixes=/app"
+      - "traefik.http.routers.app.middlewares=app-stripprefix"
     networks:
       - web
     depends_on: # only run app-service after auth-service has started
@@ -46,10 +48,12 @@ services:
     restart: "always" # automatically restart container when server crashes
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.auth.rule=Host(`${AUTH_DOMAIN:-auth.gardenway.org}`)"
+      - "traefik.http.routers.auth.rule=Host(`${DROPLET_IP:-do.gardenway.org}`) && PathPrefix(`/auth`)"
       - "traefik.http.routers.auth.entrypoints=websecure"
       - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
       - "traefik.http.services.auth.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.auth-stripprefix.stripprefix.prefixes=/auth"
+      - "traefik.http.routers.auth.middlewares=auth-stripprefix"
     networks:
       - web
 
