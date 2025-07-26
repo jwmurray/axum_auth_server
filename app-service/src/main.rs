@@ -1,6 +1,7 @@
 use std::env;
 
 use askama::Template;
+use auth_service::Application;
 use axum::{
     http::StatusCode,
     response::{Html, IntoResponse},
@@ -13,14 +14,19 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    let app = Router::new()
-        .nest_service("/assets", ServeDir::new("assets"))
-        .route("/", get(root))
-        .route("/protected", get(protected));
+    // let app = Router::new()
+    //     .nest_service("/assets", ServeDir::new("assets"))
+    //     .route("/", get(root))
+    //     .route("/login", get(login))
+    //     .route("/protected", get(protected));
+
+    let app = Application::build("0.0.0.0:3000")
+        .await
+        .expect("Failed to build application");
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8000").await.unwrap();
 
-    println!("listening on {}", listener.local_addr().unwrap());
+    println!("listening on http://{}", listener.local_addr().unwrap());
     axum::serve(listener, app).await.unwrap();
 }
 
@@ -32,6 +38,21 @@ struct IndexTemplate {
 }
 
 async fn root() -> impl IntoResponse {
+    let mut address = env::var("AUTH_SERVICE_IP").unwrap_or("localhost".to_owned());
+    if address.is_empty() {
+        address = "localhost".to_owned();
+    }
+    let login_link = format!("http://{}:3000", address);
+    let logout_link = format!("http://{}:3000/logout", address);
+
+    let template = IndexTemplate {
+        login_link,
+        logout_link,
+    };
+    Html(template.render().unwrap())
+}
+
+async fn login() -> impl IntoResponse {
     let mut address = env::var("AUTH_SERVICE_IP").unwrap_or("localhost".to_owned());
     if address.is_empty() {
         address = "localhost".to_owned();

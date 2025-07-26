@@ -1,7 +1,14 @@
-use axum::{response::Html, routing::get, serve::Serve, Router};
+use axum::{
+    routing::{get, post},
+    serve::Serve,
+    Router,
+};
+
+use routes::{hello, login, logout, signup, verify_2fa, verify_token};
 use std::error::Error;
 use tower_http::services::ServeDir;
 
+mod routes;
 // this struct encapsulates our applicaiton-related logic
 pub struct Application {
     server: Serve<Router, Router>, // TODO: what is this?
@@ -13,23 +20,23 @@ impl Application {
     pub async fn build(address: &str) -> Result<Self, Box<dyn Error>> {
         let router = Router::new()
             .nest_service("/", ServeDir::new("assets"))
-            .route("/hello", get(hello_handler));
+            .route("/signup", post(signup))
+            .route("/login", post(login))
+            .route("/logout", post(logout))
+            .route("/verify_2fa", post(verify_2fa))
+            .route("/verify_token", post(verify_token))
+            .route("/hello", get(hello));
 
         let listener = tokio::net::TcpListener::bind(address).await.unwrap();
         let address = listener.local_addr()?.to_string();
         let server = axum::serve(listener, router);
 
         // create a new Application instance and return it
-        Ok(Self { server, address })
+        Ok(Application { server, address })
     }
 
     pub async fn run(self) -> Result<(), std::io::Error> {
         println!("listening on http://{}", self.address);
         self.server.await
     }
-}
-
-async fn hello_handler() -> Html<&'static str> {
-    // TODO: Update this to a custom message!
-    Html("<h1>Hello, World!</h1>")
 }
