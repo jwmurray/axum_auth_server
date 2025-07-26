@@ -93,6 +93,7 @@ jobs:
         script: |
           cd ~
           export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
+          export ACME_EMAIL=${{ vars.ACME_EMAIL }}
           docker compose down
           docker compose pull
           docker compose up -d
