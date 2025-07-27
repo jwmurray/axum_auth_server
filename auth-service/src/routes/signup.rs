@@ -2,7 +2,7 @@ use axum::{http::StatusCode, response::IntoResponse, Json};
 use serde::Deserialize;
 
 pub async fn signup(Json(request): Json<SignupRequest>) -> impl IntoResponse {
-    StatusCode::OK.into_response()
+    StatusCode::CREATED.into_response()
 }
 
 #[derive(Deserialize)]

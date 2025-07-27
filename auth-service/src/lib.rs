@@ -8,7 +8,10 @@ use routes::{hello, login, logout, signup, verify_2fa, verify_token};
 use std::error::Error;
 use tower_http::services::ServeDir;
 
+mod domain;
 mod routes;
+mod services;
+
 // this struct encapsulates our applicaiton-related logic
 pub struct Application {
     server: Serve<Router, Router>, // TODO: what is this?
