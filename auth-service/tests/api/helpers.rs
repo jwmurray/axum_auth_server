@@ -14,7 +14,7 @@ impl TestApp {
     pub async fn new() -> Self {
         let app = Application::build(
             AppState::new(HashmapUserStore::new_arc_rwlock()),
-            "127.0.0.1:0",
+            "0.0.0.0:0",
         )
         .await
         .expect("Failed to build application");
