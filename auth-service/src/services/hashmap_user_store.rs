@@ -1,4 +1,6 @@
 use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 
 use crate::domain::User;
 
@@ -20,6 +22,12 @@ pub struct HashmapUserStore {
 }
 
 impl HashmapUserStore {
+    pub fn new_arc_rwlock() -> Arc<RwLock<Self>> {
+        Arc::new(RwLock::new(Self {
+            users: HashMap::new(),
+        }))
+    }
+
     pub fn add_user(&mut self, user: User) -> Result<(), UserStoreError> {
         // Return `UserStoreError::UserAlreadyExists` if the user already exists,
         // otherwise insert the user into the hashmap and return `Ok(())`.

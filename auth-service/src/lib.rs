@@ -8,11 +8,11 @@ use std::error::Error;
 use tower_http::services::ServeDir;
 
 mod app_state;
+pub use app_state::{AppState, UserStoreType};
 mod domain;
 mod routes;
 mod services;
-
-use app_state::AppState;
+pub use services::hashmap_user_store::HashmapUserStore;
 
 // this struct encapsulates our application-related logic
 pub struct Application {
@@ -22,7 +22,7 @@ pub struct Application {
 }
 
 impl Application {
-    pub async fn build(address: &str) -> Result<Self, Box<dyn Error>> {
+    pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         let router = Router::new()
             .route("/signup", post(signup))
             .route("/login", post(login))

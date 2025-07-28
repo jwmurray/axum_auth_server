@@ -1,4 +1,5 @@
 use auth_service::Application;
+use auth_service::{AppState, HashmapUserStore};
 use serde;
 use uuid::Uuid;
 
@@ -11,9 +12,12 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let app = Application::build("127.0.0.1:0")
-            .await
-            .expect("Failed to build application");
+        let app = Application::build(
+            AppState::new(HashmapUserStore::new_arc_rwlock()),
+            "127.0.0.1:0",
+        )
+        .await
+        .expect("Failed to build application");
 
         let address = format!("http://{}", &app.address);
 
