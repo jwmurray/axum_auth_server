@@ -15,7 +15,7 @@ pub enum UserStoreError {
 // Derive the `Default` trait for `HashmapUserStore`.
 
 #[derive(Debug, Default)]
-struct HashmapUserStore {
+pub struct HashmapUserStore {
     users: HashMap<String, User>, // key: email as String, value: User object, email is unique
 }
 
@@ -69,14 +69,14 @@ impl HashmapUserStore {
 mod tests {
     use super::*;
 
-    fn test_create_hashmap_user_store() {
-        let mut user_store = HashmapUserStore::default();
-        assert_eq!(user_store.users.len(), 0);
+    fn test_create_hashmap_user_store() -> HashmapUserStore {
+        let user_store = HashmapUserStore::default();
+        user_store
     }
 
     #[test]
     fn test_add_user() {
-        let mut user_store = HashmapUserStore::default();
+        let mut user_store = test_create_hashmap_user_store();
         let user = User {
             id: "user123".to_string(),
             email: "test@example.com".to_string(),
@@ -129,6 +129,8 @@ mod tests {
 
         // Test validating non-existent user
         let result = user_store.validate_user("nonexistent@example.com", "password123");
+        assert_eq!(result.unwrap_err(), UserStoreError::UserNotFound);
+        let result = user_store.validate_user("test@example.com", "password123");
         assert_eq!(result.unwrap_err(), UserStoreError::UserNotFound);
 
         // Add user and test validation
