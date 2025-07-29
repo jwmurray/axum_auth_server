@@ -1,0 +1,8 @@
+FROM rust:latest
+
+WORKDIR /app
+COPY . .
+
+RUN rustup target add x86_64-unknown-linux-gnu
+RUN cargo build --target x86_64-unknown-linux-gnu --release
+
