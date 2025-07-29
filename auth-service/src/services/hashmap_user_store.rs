@@ -61,7 +61,7 @@ impl HashmapUserStore {
                     Err(UserStoreError::InvalidCredentials)
                 }
             }
-            Err(e) => Err(UserStoreError::UserNotFound),
+            Err(_e) => Err(UserStoreError::UserNotFound),
         }
     }
 

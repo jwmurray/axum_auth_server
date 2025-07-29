@@ -1,5 +1,5 @@
-// use axum::{response::Html, routing::get, Router};
-// use tower_http::services::ServeDir;
+#![allow(unused_variables)]
+#![allow(unused_imports)]
 
 use auth_service::{AppState, Application, HashmapUserStore};
 use std::sync::Arc;

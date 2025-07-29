@@ -1,13 +1,15 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{app_state::AppState, domain::User, services::hashmap_user_store::HashmapUserStore};
+use crate::{app_state::AppState, domain::User};
 
 // TODO: Use Axum's state extractor to pass in AppState
 pub async fn signup(
     State(app_state): State<AppState>,
     Json(request): Json<SignupRequest>,
 ) -> impl IntoResponse {
+    println!("Signup endpoint called!"); // Add this
+
     let user = User {
         email: request.email,
         password: request.password,
@@ -21,14 +23,14 @@ pub async fn signup(
     if let Err(_e) = user_store.add_user(user) {
         return StatusCode::INTERNAL_SERVER_ERROR.into_response();
     } else {
-        let response = Json(SignupResponse {
+        let response = SignupResponse {
             message: "User created successfully".to_string(),
-        });
-        (StatusCode::CREATED, response).into_response()
+        };
+        return (StatusCode::CREATED, Json(response)).into_response();
     }
 }
 
-#[derive(Serialize, PartialEq, Eq, Debug)]
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
 pub struct SignupResponse {
     pub message: String,
 }

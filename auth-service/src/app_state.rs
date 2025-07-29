@@ -1,3 +1,6 @@
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+
 use std::sync::Arc;
 use tokio::sync::RwLock;
 

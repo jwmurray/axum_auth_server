@@ -1,5 +1,8 @@
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+
 use crate::helpers::{get_random_email, TestApp};
-use auth_service::routes::signup::SignupResponse;
+use auth_service::SignupResponse;
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
@@ -80,5 +83,11 @@ async fn should_return_201_if_valid_input() {
 
     let response = app.post_signup(&request_body_parameters).await;
     assert_eq!(response.status().as_u16(), 201);
-    assert_eq!(response.json::<SignupResponse>().await, expected_response);
+    assert_eq!(
+        response
+            .json::<SignupResponse>()
+            .await
+            .expect("Could not deserialize response bond to UserBody"),
+        expected_response
+    );
 }
