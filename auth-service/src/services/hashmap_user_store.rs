@@ -87,7 +87,6 @@ mod tests {
     fn test_add_user() {
         let mut user_store = test_create_hashmap_user_store();
         let user = User {
-            id: "user123".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
             requires_2fa: false,
@@ -110,7 +109,6 @@ mod tests {
     fn test_get_user() {
         let mut user_store = HashmapUserStore::default();
         let user = User {
-            id: "user123".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
             requires_2fa: false,
@@ -130,7 +128,6 @@ mod tests {
     fn test_validate_user() {
         let mut user_store = HashmapUserStore::default();
         let user = User {
-            id: "user123".to_string(),
             email: "test@example.com".to_string(),
             password: "password123".to_string(),
             requires_2fa: false,

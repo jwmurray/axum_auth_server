@@ -11,6 +11,7 @@ mod app_state;
 pub use app_state::{AppState, UserStoreType};
 mod domain;
 mod routes;
+pub use routes::signup::SignupResponse; // publicly expose the SignupResponse struct for testing
 mod services;
 pub use services::hashmap_user_store::HashmapUserStore;
 
@@ -30,7 +31,8 @@ impl Application {
             .route("/verify_2fa", post(verify_2fa))
             .route("/verify_token", post(verify_token))
             .route("/hello", get(hello))
-            .fallback_service(ServeDir::new("assets"));
+            .fallback_service(ServeDir::new("assets"))
+            .with_state(app_state);
 
         let listener = tokio::net::TcpListener::bind(address).await.unwrap();
         let address = listener.local_addr()?.to_string();

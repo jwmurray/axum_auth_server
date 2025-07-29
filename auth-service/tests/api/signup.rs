@@ -1,4 +1,5 @@
 use crate::helpers::{get_random_email, TestApp};
+use auth_service::routes::signup::SignupResponse;
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
@@ -67,19 +68,17 @@ async fn should_return_201_if_valid_input() {
 
     let random_email = get_random_email();
 
-    let test_cases = [serde_json::json!({
+    let request_body_parameters = serde_json::json!({
         "email": random_email,
         "password": "password123",
         "requires2FA": true
-    })];
+    });
 
-    for test_case in test_cases.iter() {
-        let response = app.post_signup(test_case).await;
-        assert_eq!(
-            response.status().as_u16(),
-            201,
-            "Failed for input: {:?}",
-            test_case
-        );
-    }
+    let expected_response = SignupResponse {
+        message: "User created successfully".to_owned(),
+    };
+
+    let response = app.post_signup(&request_body_parameters).await;
+    assert_eq!(response.status().as_u16(), 201);
+    assert_eq!(response.json::<SignupResponse>().await, expected_response);
 }
