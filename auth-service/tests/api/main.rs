@@ -1,3 +1,4 @@
+mod droplet_integration;
 mod helpers;
 mod login;
 mod logout;
