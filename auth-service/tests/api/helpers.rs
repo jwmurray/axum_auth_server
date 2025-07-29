@@ -12,12 +12,11 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let app = Application::build(
-            AppState::new(HashmapUserStore::new_arc_rwlock()),
-            "0.0.0.0:0",
-        )
-        .await
-        .expect("Failed to build application");
+        let user_store = HashmapUserStore::new_arc_rwlock();
+        let app_state = AppState::new(user_store);
+        let app = Application::build(app_state, "0.0.0.0:0")
+            .await
+            .expect("Failed to build application");
 
         let address = format!("http://{}", &app.address);
 

@@ -22,8 +22,9 @@ pub struct HashmapUserStore {
 }
 
 impl HashmapUserStore {
+    // Create a hashmap inside a RwLock, then wrap it in an Arc.
     pub fn new_arc_rwlock() -> Arc<RwLock<Self>> {
-        Arc::new(RwLock::new(Self {
+        Arc::new(RwLock::new(HashmapUserStore {
             users: HashMap::new(),
         }))
     }
