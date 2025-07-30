@@ -1,10 +1,16 @@
+use std::error::Error;
+
 use axum::{
+    http::StatusCode,
+    response::{IntoResponse, Response},
     routing::{get, post},
-    Router,
+    serve::Serve,
+    Json, Router,
 };
 
+use domain::AuthAPIError;
 use routes::{hello, login, logout, signup, verify_2fa, verify_token};
-use std::error::Error;
+use serde::{Deserialize, Serialize};
 use tower_http::services::ServeDir;
 
 mod app_state;
@@ -48,5 +54,30 @@ impl Application {
     pub async fn run(self) -> Result<(), std::io::Error> {
         println!("listening on http://{}", self.address);
         axum::serve(self.listener, self.router).await
+    }
+}
+
+#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
+pub struct ErrorResponse {
+    pub error: String,
+}
+
+impl IntoResponse for AuthAPIError {
+    fn into_response(self) -> Response {
+        let (status, error_message) = match self {
+            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
+            AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
+            AuthAPIError::InvalidEmail => (StatusCode::BAD_REQUEST, "Invalid email"),
+            AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::UnexpectedError => {
+                (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
+            }
+        };
+
+        let body = Json(ErrorResponse {
+            error: error_message.to_string(),
+        });
+
+        (status, body).into_response()
     }
 }

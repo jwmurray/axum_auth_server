@@ -1,13 +1,16 @@
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use serde::{Deserialize, Serialize};
 
-use crate::{app_state::AppState, domain::User};
+use crate::{
+    app_state::AppState,
+    domain::{AuthAPIError, User},
+};
 
 // TODO: Use Axum's state extractor to pass in AppState
 pub async fn signup(
     State(app_state): State<AppState>,
     Json(request): Json<SignupRequest>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, AuthAPIError> {
     println!("Signup endpoint called!"); // Add this
 
     let user = User {
@@ -16,17 +19,22 @@ pub async fn signup(
         requires_2fa: request.requires_2fa,
     };
 
+    if !user.is_valid() {
+        return Err(AuthAPIError::InvalidCredentials);
+    }
+
     // Get the lock on the user store
     let mut user_store = app_state.user_store.write().await;
 
     // Add the user to the user store
-    if let Err(_e) = user_store.add_user(user) {
-        return StatusCode::INTERNAL_SERVER_ERROR.into_response();
+    if let Err(e) = user_store.add_user(user) {
+        println!("Error adding user: {:?}", e);
+        return Err(AuthAPIError::UserAlreadyExists);
     } else {
         let response = SignupResponse {
             message: "User created successfully".to_string(),
         };
-        return (StatusCode::CREATED, Json(response)).into_response();
+        return Ok((StatusCode::CREATED, Json(response)).into_response());
     }
 }
 

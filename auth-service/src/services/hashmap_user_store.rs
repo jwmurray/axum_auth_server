@@ -39,6 +39,11 @@ impl HashmapUserStore {
         Ok(())
     }
 
+    // TODO: Implement a public method called `get_user`, which takes an
+    // immutable reference to self and an email string slice as arguments.
+    // This function should return a `Result` type containing either a
+    // `User` object or a `UserStoreError`.
+    // Return `UserStoreError::UserNotFound` if the user can not be found.
     pub fn get_user(&self, email: &str) -> Result<User, UserStoreError> {
         match self.users.get(email) {
             Some(user) => Ok(user.clone()),
@@ -46,12 +51,12 @@ impl HashmapUserStore {
         }
     }
 
-    // TODO: Implement a public method called `get_user`, which takes an
-    // immutable reference to self and an email string slice as arguments.
-    // This function should return a `Result` type containing either a
-    // `User` object or a `UserStoreError`.
+    // TODO: Implement a public method called `validate_user`, which takes an
+    // immutable reference to self, an email string slice, and a password string slice
+    // as arguments. `validate_user` should return a `Result` type containing either a
+    // unit type `()` if the email/password passed in match an existing user, or a `UserStoreError`.
     // Return `UserStoreError::UserNotFound` if the user can not be found.
-
+    // Return `UserStoreError::InvalidCredentials` if the password is incorrect.
     pub fn validate_user(&self, email: &str, password: &str) -> Result<(), UserStoreError> {
         match self.get_user(email) {
             Ok(user) => {
@@ -64,13 +69,6 @@ impl HashmapUserStore {
             Err(_e) => Err(UserStoreError::UserNotFound),
         }
     }
-
-    // TODO: Implement a public method called `validate_user`, which takes an
-    // immutable reference to self, an email string slice, and a password string slice
-    // as arguments. `validate_user` should return a `Result` type containing either a
-    // unit type `()` if the email/password passed in match an existing user, or a `UserStoreError`.
-    // Return `UserStoreError::UserNotFound` if the user can not be found.
-    // Return `UserStoreError::InvalidCredentials` if the password is incorrect.
 }
 
 // TODO: Add unit tests for your `HashmapUserStore` implementation
