@@ -18,8 +18,6 @@ pub struct AppState {
 
 impl AppState {
     pub fn new(user_store: UserStoreType) -> Self {
-        Self {
-            user_store: Arc::new(RwLock::new(HashmapUserStore::default())),
-        }
+        Self { user_store }
     }
 }

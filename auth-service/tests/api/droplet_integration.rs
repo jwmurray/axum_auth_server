@@ -43,8 +43,8 @@ mod droplet_tests {
     async fn test_droplet_auth_signup_duplicate_user() {
         let client = reqwest::Client::new();
 
-        // Use a consistent email for duplicate testing
-        let test_email = "duplicate_test@example.com";
+        // Generate a unique email for this test run
+        let test_email = format!("duplicate_test+{}@example.com", uuid::Uuid::new_v4());
 
         let signup_data = json!({
             "email": test_email,
@@ -61,10 +61,11 @@ mod droplet_tests {
             .await
             .expect("Failed to send first request to droplet");
 
-        // Should get 201 or 500 (if user already exists from previous test runs)
-        assert!(
-            first_response.status() == 201 || first_response.status() == 500,
-            "First signup should be 201 (success) or 500 (already exists)"
+        // Should get 201 (since we're using a unique email)
+        assert_eq!(
+            first_response.status(),
+            201,
+            "First signup should succeed with unique email"
         );
 
         // Second signup with same email - should fail
@@ -76,11 +77,11 @@ mod droplet_tests {
             .await
             .expect("Failed to send second request to droplet");
 
-        // Should get 500 for duplicate user
+        // Should get 409 CONFLICT for duplicate user (matching your local API)
         assert_eq!(
             second_response.status(),
-            500,
-            "Duplicate signup should return 500"
+            409,
+            "Duplicate signup should return 409 CONFLICT"
         );
     }
 

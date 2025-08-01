@@ -65,7 +65,7 @@ pub struct ErrorResponse {
 impl IntoResponse for AuthAPIError {
     fn into_response(self) -> Response {
         let (status, error_message) = match self {
-            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"),
+            AuthAPIError::UserAlreadyExists => (StatusCode::CONFLICT, "User already exists"), // Conflict = 409
             AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
             AuthAPIError::InvalidEmail => (StatusCode::BAD_REQUEST, "Invalid email"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),

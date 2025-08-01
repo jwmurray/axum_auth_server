@@ -61,7 +61,7 @@ paths:
                 properties:
                   error:
                     type: string
-        '409':
+        '409': # StatusCode::CONFLICT = 409
           description: Email already exists
           content:
             application/json:

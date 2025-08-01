@@ -3,6 +3,7 @@
 
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::{ErrorResponse, SignupResponse};
+use axum::http::StatusCode;
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
@@ -115,7 +116,7 @@ async fn should_return_409_if_email_already_exists() {
                 test_case
             ), // user added on first loop
             1 => {
-                assert_eq!(response.status().as_u16(), 409);
+                assert_eq!(response.status().as_u16(), StatusCode::CONFLICT);
                 assert_eq!(
                     response
                         .json::<ErrorResponse>()
