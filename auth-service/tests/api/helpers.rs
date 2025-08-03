@@ -1,6 +1,9 @@
+use auth_service::services::hashmap_user_store::HashmapUserStore;
+use auth_service::AppState;
 use auth_service::Application;
-use auth_service::{AppState, HashmapUserStore};
 use serde;
+use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use reqwest;
@@ -12,7 +15,7 @@ pub struct TestApp {
 
 impl TestApp {
     pub async fn new() -> Self {
-        let user_store = HashmapUserStore::new_arc_rwlock();
+        let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
         let app_state = AppState::new(user_store);
         let app = Application::build(app_state, "0.0.0.0:0")
             .await

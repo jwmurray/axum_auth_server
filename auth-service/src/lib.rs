@@ -8,17 +8,17 @@ use axum::{
     Json, Router,
 };
 
-use domain::AuthAPIError;
 use routes::{hello, login, logout, signup, verify_2fa, verify_token};
 use serde::{Deserialize, Serialize};
 use tower_http::services::ServeDir;
 
 mod app_state;
 pub use app_state::{AppState, UserStoreType};
-mod domain;
+pub mod domain;
+pub use domain::AuthAPIError;
 mod routes;
 pub use routes::signup::SignupResponse; // publicly expose the SignupResponse struct for testing
-mod services;
+pub mod services;
 pub use services::hashmap_user_store::HashmapUserStore;
 
 // this struct encapsulates our application-related logic

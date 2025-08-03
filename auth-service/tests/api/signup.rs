@@ -89,46 +89,29 @@ async fn should_return_409_if_email_already_exists() {
     let app = TestApp::new().await;
 
     let random_email = get_random_email();
-    let bad_email = "bad_email_at_example.com".to_owned();
-    let bad_password = "psword".to_owned();
-    let good_password = "password123".to_owned();
 
-    let test_cases = [
-        serde_json::json!({
-            "email": random_email,
-            "password": good_password,
-            "requires2FA": true
-        }),
-        serde_json::json!({
-            "email": random_email,
-            "password": good_password,
-            "requires2FA": true
-        }),
-    ];
+    let signup_body = serde_json::json!({
+        "email": random_email,
+        "password": "password123",
+        "requires2FA": true
+    });
 
-    for (i, test_case) in test_cases.iter().enumerate() {
-        let response = app.post_signup(test_case).await;
-        let expected_error = match i {
-            0 => assert_eq!(
-                response.status().as_u16(),
-                201,
-                "Failed for input: {:?}",
-                test_case
-            ), // user added on first loop
-            1 => {
-                assert_eq!(response.status().as_u16(), StatusCode::CONFLICT);
-                assert_eq!(
-                    response
-                        .json::<ErrorResponse>()
-                        .await
-                        .expect("Could not deserialize response body to ErrorResponse")
-                        .error,
-                    "User already exists".to_owned()
-                );
-            }
-            _ => panic!("Unexpected test case"),
-        };
-    }
+    let response = app.post_signup(&signup_body).await;
+
+    assert_eq!(response.status().as_u16(), 201);
+
+    let response = app.post_signup(&signup_body).await;
+
+    assert_eq!(response.status().as_u16(), 409);
+
+    assert_eq!(
+        response
+            .json::<ErrorResponse>()
+            .await
+            .expect("Could not deserialize response body to ErrorResponse")
+            .error,
+        "User already exists".to_owned()
+    );
 }
 
 #[tokio::test]
@@ -167,7 +150,7 @@ async fn should_return_201_if_valid_input() {
     });
 
     let expected_response = SignupResponse {
-        message: "User created successfully".to_owned(),
+        message: "User created successfully!".to_owned(),
     };
 
     let response = app.post_signup(&request_body_parameters).await;
