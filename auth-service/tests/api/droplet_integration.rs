@@ -35,7 +35,7 @@ mod droplet_tests {
 
         // Check that we get the expected JSON response
         let response_text = response.text().await.expect("Failed to get response text");
-        let expected_message = r#"{"message":"User created successfully"}"#;
+        let expected_message = r#"{"message":"User created successfully!"}"#;
         assert_eq!(response_text, expected_message, "Unexpected response body");
     }
 

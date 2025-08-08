@@ -163,3 +163,51 @@ async fn should_return_201_if_valid_input() {
         expected_response
     );
 }
+
+#[tokio::test]
+async fn should_return_400_dup_if_invalid_input() {
+    let app: TestApp = TestApp::new().await;
+
+    let bad_email = "foo_at_example.com".to_string(); // email has no '@' character
+    let bad_email2 = "".to_string(); // email has no '@' character
+    let good_email = "foo@example.com".to_string(); // email has no '@' character
+    let good_password = "12345678".to_string();
+    let bad_password = "1234".to_string();
+
+    let inputs = [
+        serde_json::json!({
+            "email": bad_email,
+            "password": good_password,
+            "requires2FA":true
+        }),
+        serde_json::json!({
+            "email": bad_email2,
+            "password": good_password,
+            "requires2FA":true
+        }),
+        serde_json::json!({
+            "email": good_email,
+            "password": bad_password,
+            "requires2FA":true
+        }),
+    ];
+
+    for i in inputs.iter() {
+        let response = app.post_signup(i).await;
+
+        assert_eq!(
+            response.status().as_u16(),
+            400,
+            "Failed for input: {:?}",
+            response
+        );
+        assert_eq!(
+            response
+                .json::<ErrorResponse>()
+                .await
+                .expect("Could not deserialize response body to ErrorResponse")
+                .error,
+            "Invalid credentials".to_owned()
+        )
+    }
+}
