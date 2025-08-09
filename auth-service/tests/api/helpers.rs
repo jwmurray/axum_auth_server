@@ -86,9 +86,13 @@ impl TestApp {
             .expect("Failed to get signup logout")
     }
 
-    pub async fn post_verify_token(&self) -> reqwest::Response {
+    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
         self.http_client
             .post(&format!("{}/verify_token", &self.address))
+            .json(body)
             .send()
             .await
             .expect("Failed to get signup logout")

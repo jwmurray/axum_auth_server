@@ -42,7 +42,7 @@ pub async fn login(
                 // Both user exists and password is valid - success!
             }
             Err(crate::domain::data_stores::UserStoreError::UserNotFound) => {
-                return (jar, Err(AuthAPIError::InvalidCredentials));
+                return (jar, Err(AuthAPIError::IncorrectCredentials));
             }
             Err(_) => {
                 return (jar, Err(AuthAPIError::UnexpectedError));
