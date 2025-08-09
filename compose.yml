@@ -46,6 +46,8 @@ services:
   auth-service:
     image: gardenway/auth-service
     restart: "always" # automatically restart container when server crashes
+    environment:
+      JWT_SECRET: ${JWT_SECRET} # New!
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.auth.rule=Host(`axum.gardenway.org`) && PathPrefix(`/auth`)"

@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 use std::error::Error;
 
 use axum::{
@@ -20,6 +21,8 @@ mod routes;
 pub use routes::signup::SignupResponse; // publicly expose the SignupResponse struct for testing
 pub mod services;
 pub use services::hashmap_user_store::HashmapUserStore;
+pub mod utils;
+pub use utils::constants::JWT_COOKIE_NAME;
 
 // this struct encapsulates our application-related logic
 pub struct Application {
@@ -69,6 +72,7 @@ impl IntoResponse for AuthAPIError {
             AuthAPIError::UserNotFound => (StatusCode::NOT_FOUND, "User not found"),
             AuthAPIError::InvalidEmail => (StatusCode::BAD_REQUEST, "Invalid email"),
             AuthAPIError::InvalidCredentials => (StatusCode::BAD_REQUEST, "Invalid credentials"),
+            AuthAPIError::IncorrectCredentials => (StatusCode::UNAUTHORIZED, "Invalid credentials"),
             AuthAPIError::UnexpectedError => {
                 (StatusCode::INTERNAL_SERVER_ERROR, "Unexpected error")
             }
