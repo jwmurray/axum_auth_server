@@ -1,3 +1,5 @@
+#![allow(unused_variables, unused_imports)]
+
 use crate::helpers::get_random_email;
 use crate::helpers::TestApp;
 use auth_service::{ErrorResponse, SignupResponse, JWT_COOKIE_NAME};

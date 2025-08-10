@@ -1,10 +1,11 @@
-pub mod user;
-pub use user::User;
-pub mod error;
-pub use error::AuthAPIError;
 pub mod data_stores;
-pub use data_stores::{UserStore, UserStoreError};
 pub mod email;
-pub use email::Email;
+pub mod error;
 pub mod password;
-pub use password::Password;
+pub mod user;
+
+pub use data_stores::*;
+pub use email::*;
+pub use error::*;
+pub use password::*;
+pub use user::*;
