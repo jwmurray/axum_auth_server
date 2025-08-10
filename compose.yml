@@ -31,14 +31,14 @@ services:
       AUTH_SERVICE_IP: ${AUTH_SERVICE_IP:-localhost} # Use localhost as the default value
     ports:
       - "8000:8000"
-    # labels:
-    #   - "traefik.enable=true"
-    #   - "traefik.http.routers.app.rule=Host(`axum.gardenway.org`) && PathPrefix(`/app`)"
-    #   - "traefik.http.routers.app.entrypoints=websecure"
-    #   - "traefik.http.routers.app.tls.certresolver=letsencrypt"
-    #   - "traefik.http.services.app.loadbalancer.server.port=8000"
-    #   - "traefik.http.middlewares.app-stripprefix.stripprefix.prefixes=/app"
-    #   - "traefik.http.routers.app.middlewares=app-stripprefix"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app.rule=Host(`axum.gardenway.org`) && PathPrefix(`/app`)"
+      - "traefik.http.routers.app.entrypoints=websecure"
+      - "traefik.http.routers.app.tls.certresolver=letsencrypt"
+      - "traefik.http.services.app.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.app-stripprefix.stripprefix.prefixes=/app"
+      - "traefik.http.routers.app.middlewares=app-stripprefix"
     networks:
       - web
     depends_on: # only run app-service after auth-service has started
@@ -52,14 +52,14 @@ services:
       JWT_SECRET: ${JWT_SECRET} # New!
     ports:
       - "3000:3000"
-    # labels:
-    #   - "traefik.enable=true"
-    #   - "traefik.http.routers.auth.rule=Host(`axum.gardenway.org`) && PathPrefix(`/auth`)"
-    #   - "traefik.http.routers.auth.entrypoints=websecure"
-    #   - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
-    #   - "traefik.http.services.auth.loadbalancer.server.port=3000"
-    #   - "traefik.http.middlewares.auth-stripprefix.stripprefix.prefixes=/auth"
-    #   - "traefik.http.routers.auth.middlewares=auth-stripprefix"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`axum.gardenway.org`) && PathPrefix(`/auth`)"
+      - "traefik.http.routers.auth.entrypoints=websecure"
+      - "traefik.http.routers.auth.tls.certresolver=letsencrypt"
+      - "traefik.http.services.auth.loadbalancer.server.port=3000"
+      - "traefik.http.middlewares.auth-stripprefix.stripprefix.prefixes=/auth"
+      - "traefik.http.routers.auth.middlewares=auth-stripprefix"
     networks:
       - web
 
