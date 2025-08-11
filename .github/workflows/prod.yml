@@ -42,7 +42,8 @@ jobs:
       run: |
         export JWT_SECRET=secret
         cargo build --verbose
-        cargo test --verbose
+        # Run only unit/bin tests, skip the 'api' integration crate that includes droplet tests
+        cargo test --verbose --lib --bins
 
       # Set up Docker Buildx for multi-platform builds
     - name: Set up Docker Buildx
@@ -99,3 +100,16 @@ jobs:
           docker compose down
           docker compose pull
           docker compose up -d
+    - name: Post-deploy prod checks
+      uses: appleboy/ssh-action@v1.1.0
+      with:
+        host: ${{ vars.DROPLET_IP }}
+        username: root
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          set -e
+          # basic health checks via Traefik
+          curl -fsS -o /dev/null https://axum.gardenway.org/auth/hello
+          curl -fsS -o /dev/null -X POST https://axum.gardenway.org/auth/signup \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"ci+'$(date +%s)'@example.com","password":"pw123456","requires2FA":false}'
