@@ -29,17 +29,18 @@ pub async fn login(
     };
 
     // Perform login validation in a single transaction
-    {
+    let user = {
         let user_store = app_state.user_store.read().await;
 
         // First, check if user exists
-        match user_store.get_user(&email).await {
-            Ok(_user) => {
+        let user = match user_store.get_user(&email).await {
+            Ok(user) => {
                 // User exists, now validate password
                 if let Err(_) = user_store.validate_user(&email, &password).await {
                     return (jar, Err(AuthAPIError::IncorrectCredentials));
                 }
                 // Both user exists and password is valid - success!
+                user
             }
             Err(crate::domain::data_stores::UserStoreError::UserNotFound) => {
                 return (jar, Err(AuthAPIError::IncorrectCredentials));
@@ -47,35 +48,71 @@ pub async fn login(
             Err(_) => {
                 return (jar, Err(AuthAPIError::UnexpectedError));
             }
-        }
-    } // Lock is released here
+        };
+        user
+    }; // Lock is released here
 
-    // Create successful login response
-    let response = LoginResponse {
-        message: "Login successful!".to_string(),
+    return match user.requires_2fa {
+        true => handle_2fa(jar).await,
+        // If the user does not require 2FA, add the auth cookie to the cookie jar
+        false => handle_no_2fa(&user.email, add_auth_cookie(jar, &email).await).await,
     };
-
-    // Ok((StatusCode::OK, Json(response)))
-
-    // Call the generate_auth_cookie function defined in the auth module.
-    // If the function call fails return AuthAPIError::UnexpectedError.
-    let auth_cookie = match generate_auth_cookie(&email) {
-        Ok(cookie) => cookie,
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
-    };
-
-    let updated_jar = jar.add(auth_cookie);
-
-    (updated_jar, Ok(StatusCode::OK.into_response()))
 }
 
-#[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
-pub struct LoginResponse {
-    pub message: String,
+/// Add the auth cookie to the cookie jar
+/// If the function call fails return the original cookie jar
+async fn add_auth_cookie(jar: CookieJar, email: &Email) -> CookieJar {
+    let auth_cookie = match generate_auth_cookie(&email) {
+        Ok(cookie) => cookie,
+        Err(_) => return jar,
+    };
+    jar.add(auth_cookie)
+}
+
+async fn handle_2fa(
+    jar: CookieJar,
+) -> (
+    CookieJar,
+    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
+) {
+    (
+        jar,
+        Ok((
+            StatusCode::PARTIAL_CONTENT,
+            Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
+                message: "2FA required".to_string(),
+                login_attempt_id: "123456".to_string(),
+            })),
+        )),
+    )
+}
+
+async fn handle_no_2fa(
+    email: &Email,
+    jar: CookieJar,
+) -> (
+    CookieJar,
+    Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
+) {
+    (jar, Ok((StatusCode::OK, Json(LoginResponse::RegularAuth))))
 }
 
 #[derive(Deserialize)]
 pub struct LoginRequest {
     pub email: String,
     pub password: String,
+}
+
+#[derive(Serialize, Deserialize, Debug)]
+#[serde(untagged)]
+pub enum LoginResponse {
+    RegularAuth,
+    TwoFactorAuth(TwoFactorAuthResponse),
+}
+
+#[derive(Deserialize, Debug, Serialize)]
+pub struct TwoFactorAuthResponse {
+    pub message: String,
+    #[serde(rename = "loginAttemptId")]
+    pub login_attempt_id: String,
 }

@@ -18,7 +18,8 @@ pub use app_state::{AppState, UserStoreType};
 pub mod domain;
 pub use domain::AuthAPIError;
 mod routes;
-pub use routes::signup::SignupResponse; // publicly expose the SignupResponse struct for testing
+pub use routes::login::TwoFactorAuthResponse;
+pub use routes::signup::SignupResponse; // publicly expose the SignupResponse struct for testing // publicly expose the TwoFactorAuthResponse struct for testing
 pub mod services;
 pub use services::hashmap_user_store::HashmapUserStore;
 pub mod utils;

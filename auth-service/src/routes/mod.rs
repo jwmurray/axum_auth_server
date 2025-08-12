@@ -1,5 +1,5 @@
 mod hello;
-mod login;
+pub mod login;
 mod logout;
 pub mod signup;
 mod verify_2fa;

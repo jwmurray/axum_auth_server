@@ -99,9 +99,38 @@ impl TestApp {
             .await
             .expect("Failed to get signup logout")
     }
+}
 
-    // TODO: Implement helper functions for all other routes
-    // (signup, login, logout, verify-2fa, and verify-token)
+pub async fn setup_user_for_login_with_password_no_2fa(app: &TestApp) -> (String, String) {
+    let random_email = get_random_email();
+    let good_password = "password123".to_string();
+
+    let signup_body = serde_json::json!({
+        "email": random_email,
+        "password": good_password,
+        "requires2FA": false
+    });
+
+    let response = app.post_signup(&signup_body).await;
+    assert_eq!(response.status().as_u16(), 201);
+
+    (random_email, good_password)
+}
+
+pub async fn setup_user_for_login_with_password_and_2fa(app: &TestApp) -> (String, String) {
+    let random_email = get_random_email();
+    let good_password = "password123".to_string();
+
+    let signup_body = serde_json::json!({
+        "email": random_email,
+        "password": good_password,
+        "requires2FA": true,
+    });
+
+    let response = app.post_signup(&signup_body).await;
+    assert_eq!(response.status().as_u16(), 201);
+
+    (random_email, good_password)
 }
 
 pub fn get_random_email() -> String {

@@ -1,8 +1,10 @@
 #![allow(unused_variables, unused_imports)]
 
-use crate::helpers::get_random_email;
-use crate::helpers::TestApp;
-use auth_service::{ErrorResponse, SignupResponse, JWT_COOKIE_NAME};
+use crate::helpers::{
+    get_random_email, setup_user_for_login_with_password_and_2fa,
+    setup_user_for_login_with_password_no_2fa, TestApp,
+};
+use auth_service::{ErrorResponse, SignupResponse, TwoFactorAuthResponse, JWT_COOKIE_NAME};
 use uuid::Uuid;
 
 #[tokio::test]
@@ -172,4 +174,40 @@ async fn should_return_422_if_malformed_credentials() {
             test_case
         );
     }
+}
+
+#[tokio::test]
+async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
+    let app = TestApp::new().await;
+
+    let (email, password) = setup_user_for_login_with_password_and_2fa(&app).await;
+
+    let login_body = serde_json::json!({
+        "email": email,
+        "password": password,
+        "requires2FA": true,
+    });
+
+    let response = app.post_login(&login_body).await;
+
+    assert_eq!(response.status().as_u16(), 206);
+
+    // For 2FA, no auth cookie should be set yet (user hasn't completed 2FA)
+    let auth_cookie = response
+        .cookies()
+        .find(|cookie| cookie.name() == JWT_COOKIE_NAME);
+
+    assert!(
+        auth_cookie.is_none(),
+        "Auth cookie should not be set for 2FA response"
+    );
+
+    assert_eq!(
+        response
+            .json::<TwoFactorAuthResponse>()
+            .await
+            .expect("Could not deserialize response body to TwoFactorAuthResponse")
+            .message,
+        "2FA required".to_owned()
+    );
 }
