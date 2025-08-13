@@ -4,11 +4,11 @@ use crate::domain::data_stores::{LoginAttemptId, TwoFACode, TwoFACodeStore, TwoF
 use crate::domain::email::Email;
 
 #[derive(Default)]
-pub struct HashMapTwoFACodeStore {
+pub struct HashmapTwoFACodeStore {
     codes: HashMap<Email, (LoginAttemptId, TwoFACode)>,
 }
 
-impl HashMapTwoFACodeStore {
+impl HashmapTwoFACodeStore {
     pub fn new() -> Self {
         Self {
             codes: HashMap::new(),
@@ -17,7 +17,7 @@ impl HashMapTwoFACodeStore {
 }
 
 #[async_trait::async_trait]
-impl TwoFACodeStore for HashMapTwoFACodeStore {
+impl TwoFACodeStore for HashmapTwoFACodeStore {
     async fn add_code(
         &mut self,
         email: Email,

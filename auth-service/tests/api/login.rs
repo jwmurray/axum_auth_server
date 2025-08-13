@@ -202,12 +202,19 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
         "Auth cookie should not be set for 2FA response"
     );
 
-    assert_eq!(
-        response
-            .json::<TwoFactorAuthResponse>()
-            .await
-            .expect("Could not deserialize response body to TwoFactorAuthResponse")
-            .message,
-        "2FA required".to_owned()
-    );
+    // assert_eq!(
+    //     response
+    //         .json::<TwoFactorAuthResponse>()
+    //         .await
+    //         .expect("Could not deserialize response body to TwoFactorAuthResponse")
+    //         .message,
+    //     "2FA required".to_owned()
+    // );
+
+    let json_body = response
+        .json::<TwoFactorAuthResponse>()
+        .await
+        .expect("Could not deserialize response body to TwoFactorAuthResponse");
+
+    assert_eq!(json_body.message, "2FA required".to_owned());
 }

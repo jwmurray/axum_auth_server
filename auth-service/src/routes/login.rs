@@ -2,11 +2,13 @@
 
 use axum::{extract::State, http::StatusCode, response::IntoResponse, Json};
 use axum_extra::extract::CookieJar;
+use rand::{rng, Rng};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::{
     app_state::AppState,
-    domain::{Email, Password},
+    domain::{Email, LoginAttemptId, Password, TwoFACode},
     utils::auth::generate_auth_cookie,
     AuthAPIError,
 };
@@ -51,6 +53,27 @@ pub async fn login(
         };
         user
     }; // Lock is released here
+
+    // First, we must generate a new random login attempt ID and 2FA code
+    let login_attempt_id = match LoginAttemptId::parse(Uuid::new_v4().to_string()) {
+        Ok(id) => id,
+        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    };
+    let generated_two_fa_code = format!("{:06}", rng().random_range(0..=999_999u32));
+    let two_fa_code = match TwoFACode::parse(generated_two_fa_code) {
+        Ok(code) => code,
+        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    };
+
+    // Then, we must store the 2FA code in the 2FA code store
+    let mut two_fa_code_store = app_state.two_fa_code_store.write().await;
+    match two_fa_code_store
+        .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
+        .await
+    {
+        Ok(()) => {}
+        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    }
 
     return match user.requires_2fa {
         true => handle_2fa(jar).await,
