@@ -1,6 +1,6 @@
 use auth_service::services::hashmap_user_store::HashmapUserStore;
-use auth_service::AppState;
 use auth_service::Application;
+use reqwest::cookie::Jar;
 use serde;
 use std::sync::Arc;
 use tokio::sync::RwLock;
@@ -8,10 +8,17 @@ use uuid::Uuid;
 
 use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
+use auth_service::services::mock_email_client::MockEmailClient;
+
+use auth_service::app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType};
+
 use reqwest;
 
 pub struct TestApp {
     pub address: String,
+    pub cookie_jar: Arc<Jar>,
+    pub banned_token_store: BannedTokenStoreType,
+    pub two_fa_code_store: TwoFACodeStoreType,
     pub http_client: reqwest::Client,
 }
 
@@ -20,7 +27,13 @@ impl TestApp {
         let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
         let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
-        let app_state = AppState::new(user_store, banned_token_store, two_fa_code_store);
+        let email_client = Arc::new(RwLock::new(MockEmailClient::default()));
+        let app_state = AppState::new(
+            user_store,
+            banned_token_store.clone(),
+            two_fa_code_store.clone(),
+            email_client.clone(),
+        );
         let app = Application::build(app_state, "0.0.0.0:0")
             .await
             .expect("Failed to build application");
@@ -34,10 +47,14 @@ impl TestApp {
 
         // create a reqwest http client instance
         let http_client = reqwest::Client::new();
-
+        let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
+        let email_client = Arc::new(MockEmailClient);
         // Create new TestApp instance with the address and http_client
         TestApp {
             address,
+            cookie_jar: Arc::new(Jar::default()),
+            banned_token_store: banned_token_store.clone(),
+            two_fa_code_store: two_fa_code_store.clone(),
             http_client,
         }
     }
@@ -82,13 +99,13 @@ impl TestApp {
             .expect("Failed to get signup logout")
     }
 
-    pub async fn post_verify_2fa(&self) -> reqwest::Response {
-        self.http_client
-            .post(&format!("{}/verify_2fa", &self.address))
-            .send()
-            .await
-            .expect("Failed to get signup logout")
-    }
+    // pub async fn post_verify_2fa(&self) -> reqwest::Response {
+    //     self.http_client
+    //         .post(&format!("{}/verify_2fa", &self.address))
+    //         .send()
+    //         .await
+    //         .expect("Failed to get signup logout")
+    // }
 
     pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
     where
@@ -100,6 +117,18 @@ impl TestApp {
             .send()
             .await
             .expect("Failed to get signup logout")
+    }
+
+    pub async fn post_verify_2fa<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(format!("{}/verify-2fa", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
     }
 }
 

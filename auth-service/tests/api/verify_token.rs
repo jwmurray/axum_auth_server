@@ -2,7 +2,7 @@ use crate::helpers::{get_random_email, TestApp};
 use auth_service::JWT_COOKIE_NAME;
 
 #[tokio::test]
-async fn should_return_200_valid_token() {
+async fn should_return_200_valid_token_from_post_signup_and_post_login() {
     let app = TestApp::new().await;
 
     let random_email = get_random_email();

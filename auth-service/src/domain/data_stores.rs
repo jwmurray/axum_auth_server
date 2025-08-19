@@ -1,5 +1,6 @@
 use super::{Email, Password, User};
 use lazy_regex::regex;
+use rand::Rng;
 use uuid::Uuid;
 
 #[async_trait::async_trait]
@@ -42,11 +43,14 @@ pub trait TwoFACodeStore {
         &self,
         email: &Email,
     ) -> Result<(LoginAttemptId, TwoFACode), TwoFACodeStoreError>;
+
+    async fn remove_code(&mut self, email: &Email) -> Result<(), TwoFACodeStoreError>;
+    // async fn contains_code(&self, email: &Email) -> Result<bool, TwoFACodeStoreError>;
 }
 
 #[derive(Debug, PartialEq)]
 pub enum TwoFACodeStoreError {
-    LoginAttemptNotFound,
+    LoginAttemptIdNotFound,
     UnexpectedError,
 }
 
@@ -64,16 +68,43 @@ impl LoginAttemptId {
     }
 }
 
-#[derive(Debug, PartialEq, Clone)]
+impl Default for LoginAttemptId {
+    fn default() -> Self {
+        LoginAttemptId(Uuid::new_v4().to_string())
+    }
+}
+
+impl AsRef<str> for LoginAttemptId {
+    fn as_ref(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub struct TwoFACode(String);
 
 impl TwoFACode {
     pub fn parse(code: String) -> Result<Self, String> {
-        // verify the code is 6 digits using regex (compiled at compile time)
-        if !regex!(r"^\d{6}$").is_match(&code) {
-            return Err("Invalid code".to_string());
-        }
+        let code_as_u32 = code
+            .parse::<u32>()
+            .map_err(|_| "Invalid 2FA code".to_owned())?;
 
-        Ok(TwoFACode(code))
+        if (100_000..=999_999).contains(&code_as_u32) {
+            Ok(Self(code))
+        } else {
+            Err("Invalid 2FA code".to_owned())
+        }
+    }
+}
+
+impl Default for TwoFACode {
+    fn default() -> Self {
+        Self(rand::thread_rng().gen_range(100_000..=999_999).to_string())
+    }
+}
+
+impl AsRef<str> for TwoFACode {
+    fn as_ref(&self) -> &str {
+        &self.0
     }
 }

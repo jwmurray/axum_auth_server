@@ -54,29 +54,8 @@ pub async fn login(
         user
     }; // Lock is released here
 
-    // First, we must generate a new random login attempt ID and 2FA code
-    let login_attempt_id = match LoginAttemptId::parse(Uuid::new_v4().to_string()) {
-        Ok(id) => id,
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
-    };
-    let generated_two_fa_code = format!("{:06}", rng().random_range(0..=999_999u32));
-    let two_fa_code = match TwoFACode::parse(generated_two_fa_code) {
-        Ok(code) => code,
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
-    };
-
-    // Then, we must store the 2FA code in the 2FA code store
-    let mut two_fa_code_store = app_state.two_fa_code_store.write().await;
-    match two_fa_code_store
-        .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
-        .await
-    {
-        Ok(()) => {}
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
-    }
-
     return match user.requires_2fa {
-        true => handle_2fa(jar).await,
+        true => handle_2fa(&email, &app_state, jar).await,
         // If the user does not require 2FA, add the auth cookie to the cookie jar
         false => handle_no_2fa(&user.email, add_auth_cookie(jar, &email).await).await,
     };
@@ -93,18 +72,50 @@ async fn add_auth_cookie(jar: CookieJar, email: &Email) -> CookieJar {
 }
 
 async fn handle_2fa(
+    email: &Email,
+    app_state: &AppState,
     jar: CookieJar,
 ) -> (
     CookieJar,
     Result<(StatusCode, Json<LoginResponse>), AuthAPIError>,
 ) {
+    // Generate login attempt ID and 2FA code
+    let login_attempt_id = match LoginAttemptId::parse(Uuid::new_v4().to_string()) {
+        Ok(id) => id,
+        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    };
+
+    let generated_two_fa_code = format!("{:06}", rng().random_range(0..=999_999u32));
+    let two_fa_code = match TwoFACode::parse(generated_two_fa_code.clone()) {
+        Ok(code) => code,
+        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
+    };
+
+    // Store the 2FA code
+    let mut two_fa_code_store = app_state.two_fa_code_store.write().await;
+    if let Err(_) = two_fa_code_store
+        .add_code(email.clone(), login_attempt_id.clone(), two_fa_code.clone())
+        .await
+    {
+        return (jar, Err(AuthAPIError::UnexpectedError));
+    }
+
+    // Send 2FA code via the email client
+    let email_client = app_state.email_client.read().await;
+    if let Err(_) = email_client
+        .send_email(&email, "2FA code", &generated_two_fa_code)
+        .await
+    {
+        return (jar, Err(AuthAPIError::UnexpectedError));
+    }
+
     (
         jar,
         Ok((
             StatusCode::PARTIAL_CONTENT,
             Json(LoginResponse::TwoFactorAuth(TwoFactorAuthResponse {
                 message: "2FA required".to_string(),
-                login_attempt_id: "123456".to_string(),
+                login_attempt_id: login_attempt_id.as_ref().to_string(),
             })),
         )),
     )

@@ -3,7 +3,7 @@ use std::error::Error;
 
 use axum::{
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     routing::{get, post},
     serve::Serve,
     Json, Router,
@@ -13,16 +13,16 @@ use routes::{hello, login, logout, signup, verify_2fa, verify_token};
 use serde::{Deserialize, Serialize};
 use tower_http::services::ServeDir;
 
-mod app_state;
-pub use app_state::{AppState, UserStoreType};
+pub mod app_state;
 pub mod domain;
 pub use domain::AuthAPIError;
-mod routes;
+pub mod routes;
 pub use routes::login::TwoFactorAuthResponse;
 pub use routes::signup::SignupResponse; // publicly expose the SignupResponse struct for testing // publicly expose the TwoFactorAuthResponse struct for testing
 pub mod services;
 pub use services::hashmap_user_store::HashmapUserStore;
 pub mod utils;
+pub use app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType, UserStoreType};
 pub use utils::constants::JWT_COOKIE_NAME;
 
 // this struct encapsulates our application-related logic
@@ -35,10 +35,12 @@ pub struct Application {
 impl Application {
     pub async fn build(app_state: AppState, address: &str) -> Result<Self, Box<dyn Error>> {
         let router = Router::new()
+            .route("/", get(root))
             .route("/signup", post(signup))
             .route("/login", post(login))
             .route("/logout", post(logout))
-            .route("/verify_2fa", post(verify_2fa))
+            .route("/verify-2fa", post(verify_2fa))
+            .route("/verify_2fa", post(verify_2fa)) // Keep both for compatibility
             .route("/verify_token", post(verify_token))
             .route("/hello", get(hello))
             .fallback_service(ServeDir::new("assets"))
@@ -59,6 +61,11 @@ impl Application {
         println!("listening on http://{}", self.address);
         axum::serve(self.listener, self.router).await
     }
+}
+
+// Root route handler that serves the main HTML page
+async fn root() -> Html<&'static str> {
+    Html(include_str!("../assets/index.html"))
 }
 
 #[derive(Serialize, Deserialize, PartialEq, Eq, Debug)]
