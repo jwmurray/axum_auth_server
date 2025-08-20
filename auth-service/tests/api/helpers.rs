@@ -1,19 +1,17 @@
-use auth_service::services::hashmap_user_store::HashmapUserStore;
-use auth_service::Application;
 use reqwest::cookie::Jar;
-use serde;
 use std::sync::Arc;
 use tokio::sync::RwLock;
+
+use auth_service::{
+    app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType},
+    services::{
+        hashmap_two_fa_code_store::HashmapTwoFACodeStore, hashmap_user_store::HashmapUserStore,
+        hashset_banned_token_store::HashsetBannedTokenStore, mock_email_client::MockEmailClient,
+    },
+    utils::constants::test,
+    Application,
+};
 use uuid::Uuid;
-
-use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
-use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
-use auth_service::services::mock_email_client::MockEmailClient;
-
-use auth_service::app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType};
-
-use reqwest;
-
 pub struct TestApp {
     pub address: String,
     pub cookie_jar: Arc<Jar>,
@@ -27,46 +25,42 @@ impl TestApp {
         let user_store = Arc::new(RwLock::new(HashmapUserStore::default()));
         let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
-        let email_client = Arc::new(RwLock::new(MockEmailClient::default()));
+
+        let email_client = Arc::new(RwLock::new(MockEmailClient));
+
         let app_state = AppState::new(
             user_store,
             banned_token_store.clone(),
             two_fa_code_store.clone(),
-            email_client.clone(),
+            email_client,
         );
-        let app = Application::build(app_state, "0.0.0.0:0")
+
+        let app = Application::build(app_state, test::APP_ADDRESS)
             .await
-            .expect("Failed to build application");
-
-        let address = format!("http://{}", &app.address);
-
-        // Run the auth service in a separate async task
-        // to avoid blocking the main test thread.
+            .expect("Failed to build app");
+        let address = format!("http://{}", app.address.clone());
         #[allow(clippy::let_underscore_future)]
         let _ = tokio::spawn(app.run());
-
-        // create a reqwest http client instance
-        let http_client = reqwest::Client::new();
-        let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
-        let email_client = Arc::new(MockEmailClient);
-        // Create new TestApp instance with the address and http_client
-        TestApp {
+        let cookie_jar = Arc::new(Jar::default());
+        let http_client = reqwest::Client::builder()
+            .cookie_provider(cookie_jar.clone())
+            .build()
+            .unwrap();
+        Self {
             address,
-            cookie_jar: Arc::new(Jar::default()),
-            banned_token_store: banned_token_store.clone(),
-            two_fa_code_store: two_fa_code_store.clone(),
+            cookie_jar,
+            banned_token_store,
+            two_fa_code_store,
             http_client,
         }
     }
-
     pub async fn get_root(&self) -> reqwest::Response {
         self.http_client
             .get(&format!("{}/", &self.address))
             .send()
             .await
-            .expect("Failed to get root")
+            .expect("Failed to execute request.")
     }
-
     pub async fn post_signup<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
@@ -76,9 +70,8 @@ impl TestApp {
             .json(body)
             .send()
             .await
-            .expect("Failed to execute request")
+            .expect("Failed to execute request.")
     }
-
     pub async fn post_login<Body>(&self, body: &Body) -> reqwest::Response
     where
         Body: serde::Serialize,
@@ -88,35 +81,14 @@ impl TestApp {
             .json(body)
             .send()
             .await
-            .expect("Failed to execute request")
+            .expect("Failed to execute request.")
     }
-
     pub async fn post_logout(&self) -> reqwest::Response {
         self.http_client
-            .post(&format!("{}/logout", &self.address))
+            .post(format!("{}/logout", &self.address))
             .send()
             .await
-            .expect("Failed to get signup logout")
-    }
-
-    // pub async fn post_verify_2fa(&self) -> reqwest::Response {
-    //     self.http_client
-    //         .post(&format!("{}/verify_2fa", &self.address))
-    //         .send()
-    //         .await
-    //         .expect("Failed to get signup logout")
-    // }
-
-    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
-    where
-        Body: serde::Serialize,
-    {
-        self.http_client
-            .post(&format!("{}/verify_token", &self.address))
-            .json(body)
-            .send()
-            .await
-            .expect("Failed to get signup logout")
+            .expect("Failed to execute request.")
     }
 
     pub async fn post_verify_2fa<Body>(&self, body: &Body) -> reqwest::Response
@@ -130,40 +102,50 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
+    pub async fn post_verify_token<Body>(&self, body: &Body) -> reqwest::Response
+    where
+        Body: serde::Serialize,
+    {
+        self.http_client
+            .post(format!("{}/verify-token", &self.address))
+            .json(body)
+            .send()
+            .await
+            .expect("Failed to execute request.")
+    }
+}
+pub fn get_random_email() -> String {
+    format!("{}@example.com", Uuid::new_v4())
+}
+
+pub async fn setup_user_for_login_with_password_and_2fa(app: &TestApp) -> (String, String) {
+    let email = get_random_email();
+    let password = "password123".to_owned();
+
+    let signup_body = serde_json::json!({
+        "email": email,
+        "password": password,
+        "requires2FA": true
+    });
+
+    let response = app.post_signup(&signup_body).await;
+    assert_eq!(response.status().as_u16(), 201);
+
+    (email, password)
 }
 
 pub async fn setup_user_for_login_with_password_no_2fa(app: &TestApp) -> (String, String) {
-    let random_email = get_random_email();
-    let good_password = "password123".to_string();
+    let email = get_random_email();
+    let password = "password123".to_owned();
 
     let signup_body = serde_json::json!({
-        "email": random_email,
-        "password": good_password,
+        "email": email,
+        "password": password,
         "requires2FA": false
     });
 
     let response = app.post_signup(&signup_body).await;
     assert_eq!(response.status().as_u16(), 201);
 
-    (random_email, good_password)
-}
-
-pub async fn setup_user_for_login_with_password_and_2fa(app: &TestApp) -> (String, String) {
-    let random_email = get_random_email();
-    let good_password = "password123".to_string();
-
-    let signup_body = serde_json::json!({
-        "email": random_email,
-        "password": good_password,
-        "requires2FA": true,
-    });
-
-    let response = app.post_signup(&signup_body).await;
-    assert_eq!(response.status().as_u16(), 201);
-
-    (random_email, good_password)
-}
-
-pub fn get_random_email() -> String {
-    format!("{}@example.com", &Uuid::new_v4())
+    (email, password)
 }
