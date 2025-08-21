@@ -8,4 +8,4 @@ services:
     build:
       context: ./auth-service # specify directory where local Dockerfile is located
     ports:
-      - "3000:3000"  # Map localhost:3000 to container:3000
+      - "3001:3000"  # Map localhost:3001 to container:3000
