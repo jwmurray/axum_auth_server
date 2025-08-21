@@ -13,7 +13,6 @@ pub async fn verify_2fa(
     jar: CookieJar,
     Json(request): Json<Verify2FARequest>,
 ) -> (CookieJar, Result<impl IntoResponse, AuthAPIError>) {
-    println!("Verify 2FA endpoint called!");
 
     let email = match Email::parse(request.email.clone()) {
         Ok(email) => email,
@@ -34,25 +33,16 @@ pub async fn verify_2fa(
 
     let code_tuple = match two_fa_code_store.get_code(&email).await {
         Ok(code_tuple) => code_tuple,
-        Err(_) => return (jar, Err(AuthAPIError::InvalidCredentials)),
+        Err(_) => return (jar, Err(AuthAPIError::IncorrectCredentials)),
     };
 
     if !code_tuple.0.eq(&login_attempt_id) || !code_tuple.1.eq(&two_fa_code) {
-        return (jar, Err(AuthAPIError::InvalidCredentials));
+        return (jar, Err(AuthAPIError::IncorrectCredentials));
     }
 
     if two_fa_code_store.remove_code(&email).await.is_err() {
         return (jar, Err(AuthAPIError::UnexpectedError));
     }
-
-    if two_fa_code_store.remove_code(&email).await.is_err() {
-        return (jar, Err(AuthAPIError::UnexpectedError));
-    }
-
-    let cookie = match generate_auth_cookie(&email) {
-        Ok(cookie) => cookie,
-        Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
-    };
 
     let cookie = match generate_auth_cookie(&email) {
         Ok(cookie) => cookie,
@@ -61,7 +51,7 @@ pub async fn verify_2fa(
 
     let updated_jar = jar.add(cookie);
 
-    (updated_jar, Ok(()))
+    (updated_jar, Ok(StatusCode::OK.into_response()))
 }
 
 #[derive(Deserialize)]

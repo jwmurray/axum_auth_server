@@ -47,8 +47,6 @@ impl TestApp {
 
         // create a reqwest http client instance
         let http_client = reqwest::Client::new();
-        let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
-        let email_client = Arc::new(MockEmailClient);
         // Create new TestApp instance with the address and http_client
         TestApp {
             address,
