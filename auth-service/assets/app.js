@@ -1,3 +1,6 @@
+// Detect if we're behind a reverse proxy (production) or direct access (local)
+const API_BASE = window.location.hostname === 'axum.gardenway.org' ? '/auth' : '';
+
 const loginSection = document.getElementById("login-section");
 const twoFASection = document.getElementById("2fa-section");
 const signupSection = document.getElementById("signup-section");
@@ -42,7 +45,7 @@ loginButton.addEventListener("click", (e) => {
     const email = loginForm.email.value;
     const password = loginForm.password.value;
 
-    fetch('/login', {
+    fetch(`${API_BASE}/login`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -92,7 +95,7 @@ signupButton.addEventListener("click", (e) => {
     const password = signupForm.password.value;
     const requires2FA = signupForm.twoFA.checked;
 
-    fetch('/signup', {
+    fetch(`${API_BASE}/signup`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -133,7 +136,7 @@ TwoFAButton.addEventListener("click", (e) => {
     const loginAttemptId = TwoFAForm.login_attempt_id.value;
     const TwoFACode = TwoFAForm.email_code.value;
 
-    fetch('/verify-2fa', {
+    fetch(`${API_BASE}/verify-2fa`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
