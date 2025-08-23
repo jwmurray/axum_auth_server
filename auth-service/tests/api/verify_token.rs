@@ -3,7 +3,7 @@ use auth_service::JWT_COOKIE_NAME;
 
 #[tokio::test]
 async fn should_return_200_valid_token_from_post_signup_and_post_login() {
-    let app = TestApp::new().await;
+    let app = TestApp::new("my_test_db".to_string()).await;
 
     let random_email = get_random_email();
 
@@ -46,7 +46,7 @@ async fn should_return_200_valid_token_from_post_signup_and_post_login() {
 
 #[tokio::test]
 async fn should_return_401_if_invalid_token() {
-    let app = TestApp::new().await;
+    let app = TestApp::new("my_test_db".to_string()).await;
 
     let random_email = get_random_email();
 
@@ -82,7 +82,7 @@ async fn should_return_401_if_invalid_token() {
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new().await;
+    let app = TestApp::new("my_test_db".to_string()).await;
 
     let random_email = get_random_email();
 

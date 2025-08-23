@@ -2,7 +2,7 @@ use crate::helpers::TestApp;
 
 #[tokio::test]
 async fn logout_should_return_200() {
-    let app = TestApp::new().await;
+    let app = TestApp::new("my_test_db".to_string()).await;
 
     let response = app.post_logout().await;
 

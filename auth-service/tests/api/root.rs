@@ -2,7 +2,7 @@ use crate::helpers::TestApp;
 
 #[tokio::test]
 async fn root_returns_auth_ui() {
-    let app = TestApp::new().await;
+    let app = TestApp::new("my_test_db".to_string()).await;
 
     let response = app.get_root().await;
 

@@ -9,12 +9,15 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use sqlx::Connection;
+use std::str::FromStr;
+
 // use auth_service::services::data_stores::hashmap_user_store::HashmapUserStore;
 use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
 
 use auth_service::get_postgres_pool;
 use auth_service::utils::constants::DATABASE_URL;
-use sqlx::{postgres::PgPoolOptions, Executor, PgPool};
+use sqlx::{postgres::PgConnectOptions, postgres::PgPoolOptions, Executor, PgConnection, PgPool};
 
 use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
 use auth_service::services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore;
@@ -30,11 +33,13 @@ pub struct TestApp {
     pub banned_token_store: BannedTokenStoreType,
     pub two_fa_code_store: TwoFACodeStoreType,
     pub http_client: reqwest::Client,
+    pub db_name: String,
+    pub clean_up_called: bool,
 }
 
 impl TestApp {
-    pub async fn new() -> Self {
-        let db_pool = Self::configure_postgresql().await;
+    pub async fn new(db_name: String) -> Self {
+        let db_pool = Self::configure_postgresql(&db_name).await;
         let user_store = Arc::new(RwLock::new(PostgresUserStore::new(db_pool)));
         let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
         let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
@@ -65,10 +70,12 @@ impl TestApp {
             banned_token_store: banned_token_store.clone(),
             two_fa_code_store: two_fa_code_store.clone(),
             http_client,
+            db_name,
+            clean_up_called: false,
         }
     }
 
-    pub async fn configure_postgresql() -> PgPool {
+    pub async fn configure_postgresql(db_name: &str) -> PgPool {
         // Remove any existing database name from the URL to get the base connection string
 
         let postgresql_conn_url = DATABASE_URL
@@ -188,6 +195,19 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
+
+    pub async fn clean_up(&mut self) {
+        delete_database(&self.db_name).await;
+        self.clean_up_called = true;
+    }
+}
+
+impl Drop for TestApp {
+    fn drop(&mut self) {
+        if !self.clean_up_called {
+            panic!("TestApp::clean_up() was not called! Test databases must be cleaned up.");
+        }
+    }
 }
 
 pub async fn setup_user_for_login_with_password_no_2fa(app: &TestApp) -> (String, String) {
@@ -224,4 +244,38 @@ pub async fn setup_user_for_login_with_password_and_2fa(app: &TestApp) -> (Strin
 
 pub fn get_random_email() -> String {
     format!("{}@example.com", &Uuid::new_v4())
+}
+
+pub async fn delete_database(db_name: &str) {
+    let postgresql_conn_url: String = DATABASE_URL.to_owned();
+
+    let connection_options = PgConnectOptions::from_str(&postgresql_conn_url)
+        .expect("Failed to parse PostgreSQL connection string");
+
+    let mut connection = PgConnection::connect_with(&connection_options)
+        .await
+        .expect("Failed to connect to Postgres");
+
+    // Kill any active connections to the database
+    connection
+        .execute(
+            format!(
+                r#"
+                SELECT pg_terminate_backend(pg_stat_activity.pid)
+                FROM pg_stat_activity
+                WHERE pg_stat_activity.datname = '{}'
+                  AND pid <> pg_backend_pid();
+        "#,
+                db_name
+            )
+            .as_str(),
+        )
+        .await
+        .expect("Failed to drop the database.");
+
+    // Drop the database
+    connection
+        .execute(format!(r#"DROP DATABASE "{}";"#, db_name).as_str())
+        .await
+        .expect("Failed to drop the database.");
 }

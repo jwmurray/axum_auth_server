@@ -9,7 +9,7 @@ use uuid::Uuid;
 
 #[tokio::test]
 async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -38,11 +38,13 @@ async fn should_return_200_if_valid_credentials_and_2fa_disabled() {
         .expect("No auth cookie found");
 
     assert!(!auth_cookie.value().is_empty());
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -87,11 +89,13 @@ async fn should_return_400_if_invalid_input() {
             "Invalid credentials".to_owned()
         );
     }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_401_if_incorrect_credentials() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -136,11 +140,13 @@ async fn should_return_401_if_incorrect_credentials() {
             "Incorrect credentials".to_owned()
         );
     }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_422_if_malformed_credentials() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -174,11 +180,13 @@ async fn should_return_422_if_malformed_credentials() {
             test_case
         );
     }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let (email, password) = setup_user_for_login_with_password_and_2fa(&app).await;
 
@@ -217,4 +225,6 @@ async fn should_return_206_if_valid_credentials_and_2fa_enabled() {
         .expect("Could not deserialize response body to TwoFactorAuthResponse");
 
     assert_eq!(json_body.message, "2FA required".to_owned());
+    
+    app.clean_up().await;
 }

@@ -4,10 +4,11 @@
 use crate::helpers::{get_random_email, TestApp};
 use auth_service::{ErrorResponse, SignupResponse};
 use axum::http::StatusCode;
+use uuid::Uuid;
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -41,11 +42,13 @@ async fn should_return_422_if_malformed_input() {
             test_case
         );
     }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_if_invalid_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
     let bad_email = "bad_email_at_example.com".to_owned();
@@ -82,11 +85,13 @@ async fn should_return_400_if_invalid_input() {
             "Invalid credentials".to_owned()
         );
     }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_409_if_email_already_exists() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -112,11 +117,13 @@ async fn should_return_409_if_email_already_exists() {
             .error,
         "User already exists".to_owned()
     );
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_200_if_good_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -135,11 +142,13 @@ async fn should_return_200_if_good_input() {
             test_case
         );
     }
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_201_if_valid_input() {
-    let app = TestApp::new().await;
+    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
 
@@ -162,11 +171,13 @@ async fn should_return_201_if_valid_input() {
             .expect("Could not deserialize response body to UserBody"),
         expected_response
     );
+    
+    app.clean_up().await;
 }
 
 #[tokio::test]
 async fn should_return_400_dup_if_invalid_input() {
-    let app: TestApp = TestApp::new().await;
+    let mut app: TestApp = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let bad_email = "foo_at_example.com".to_string(); // email has no '@' character
     let bad_email2 = "".to_string(); // email has no '@' character
@@ -210,4 +221,6 @@ async fn should_return_400_dup_if_invalid_input() {
             "Invalid credentials".to_owned()
         )
     }
+    
+    app.clean_up().await;
 }
