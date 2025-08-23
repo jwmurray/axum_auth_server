@@ -49,7 +49,8 @@ services:
     image: gardenway/auth-service
     restart: "always" # automatically restart container when server crashes
     environment:
-      JWT_SECRET: ${JWT_SECRET} # New!
+      JWT_SECRET: ${JWT_SECRET} 
+      DATABASE_URL: "postgres://postgres:${POSTGRES_PASSWORD}@db:5432"
       # ports:
       # - "3000:3000"
     labels:
@@ -62,9 +63,24 @@ services:
       - "traefik.http.routers.auth.middlewares=auth-stripprefix"
     networks:
       - web
+    depends_on:
+      - db 
+
+  db:
+    image: postgres:15.2-alpine
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "5432:5432"
+    volumes:
+      - db:/var/lib/postgresql/data
+    networks:
+      - web
 
 volumes:
   letsencrypt:
+  db:
 
 networks:
   web:

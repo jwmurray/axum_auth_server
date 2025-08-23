@@ -5,8 +5,8 @@ use auth_service::domain::data_stores::UserStore;
 use auth_service::{AppState, Application, HashmapUserStore, get_postgres_pool};
 use tokio::sync::RwLock;
 
-use auth_service::services::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
-use auth_service::services::hashset_banned_token_store::HashsetBannedTokenStore;
+use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
+use auth_service::services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore;
 use auth_service::services::mock_email_client::MockEmailClient;
 use std::sync::Arc;
 

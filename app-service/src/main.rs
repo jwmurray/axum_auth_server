@@ -13,6 +13,8 @@ use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
+    let pg_pool = configure_postgresql().await;
+
     let app = Router::new()
         .nest_service("/assets", ServeDir::new("assets"))
         .route("/", get(root))
@@ -26,6 +28,22 @@ async fn main() {
         listener.local_addr().unwrap()
     );
     axum::serve(listener, app).await.unwrap();
+}
+
+
+async fn configure_postgresql() -> PgPool {
+    // Create a new database connection pool
+    let pg_pool = get_postgres_pool(&DATABASE_URL)
+        .await
+        .expect("Failed to create Postgres connection pool!");
+
+    // Run database migrations against our test database! 
+    sqlx::migrate!()
+        .run(&pg_pool)
+        .await
+        .expect("Failed to run migrations");
+
+    pg_pool
 }
 
 #[derive(Template)]
