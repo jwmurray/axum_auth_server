@@ -1,15 +1,36 @@
 name: Build, Test and Deploy to Prod
 
-# Trigger the workflow when changes are pushed to the main branch
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
+
+# New! We want to make sure SQLx doesn't throw compile time errors so we force offline mode.
+env:
+  SQLX_OFFLINE: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
+    # New! Our tests now require a running PostgreSQL and Redis instance!
+    # Service containers to run with the `test` container job
+    services:
+      postgres:
+        # Docker Hub image
+        image: postgres:15.2-alpine
+        # Environment variables scoped only for the `postgres` element
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: postgres
+        # Opens tcp port 5432 on the host and service container
+        ports:
+          - 5432:5432
+      redis:
+        image: redis:7.0-alpine
+        ports:
+          - 6379:6379
 
     steps:
       # Checkout code from the repository
@@ -29,7 +50,10 @@ jobs:
         restore-keys: ${{ runner.os }}-cargo-
 
     - name: Install Rust
-      run: rustup update stable && rustup default stable
+      uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: stable
 
     - name: Build and test app-service code
       working-directory: ./app-service
@@ -37,13 +61,14 @@ jobs:
         cargo build --verbose
         cargo test --verbose
 
+      # New! Added DATABASE_URL environment variable!
     - name: Build and test auth-service code
       working-directory: ./auth-service
       run: |
         export JWT_SECRET=secret
+        export DATABASE_URL=postgres://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432
         cargo build --verbose
-        # Run only unit/bin tests, skip the 'api' integration crate that includes droplet tests
-        cargo test --verbose --lib --bins
+        cargo test --verbose
 
       # Set up Docker Buildx for multi-platform builds
     - name: Set up Docker Buildx
@@ -80,32 +105,33 @@ jobs:
         username: ${{ secrets.DOCKER_USERNAME }}
         password: ${{ secrets.DOCKER_PASSWORD }}
 
-    - name: Copy compose.yml to droplet
-      run: |
-        echo "${{ secrets.SSH_PRIVATE_KEY }}" > private_key
-        chmod 600 private_key
-        scp -i private_key -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
+    - name: Install sshpass
+      run: sudo apt-get install sshpass
 
+    - name: Copy compose.yml to droplet
+      run: sshpass -v -p ${{ secrets.DROPLET_PASSWORD }} scp -o StrictHostKeyChecking=no compose.yml root@${{ vars.DROPLET_IP }}:~
+
+      # New! Added POSTGRES_PASSWORD environment variable!
     - name: Deploy
       uses: appleboy/ssh-action@master
       with:
         host: ${{ vars.DROPLET_IP }}
         username: root
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        password: ${{ secrets.DROPLET_PASSWORD }}
         script: |
-          cd ~  
+          cd ~
           export JWT_SECRET=${{ secrets.JWT_SECRET }}
           export AUTH_SERVICE_IP=${{ vars.DROPLET_IP }}
-          export ACME_EMAIL=${{ vars.ACME_EMAIL }}
-          docker compose down
-          docker compose pull
-          docker compose up -d
+          export POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
+          docker-compose down
+          docker-compose pull
+          docker-compose up -d
     - name: Post-deploy prod checks
       uses: appleboy/ssh-action@v1.1.0
       with:
         host: ${{ vars.DROPLET_IP }}
         username: root
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        password: ${{ secrets.DROPLET_PASSWORD }}
         script: |
           set -e
           # basic health checks via Traefik

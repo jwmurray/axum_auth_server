@@ -29,6 +29,7 @@ validator = "0.20.0"
 argon2 = { version = "0.5.3", features = ["std"] }
 rand_core = "0.9.3"
 redis = { version = "0.32.5", features = ["tokio-comp"] }
+serde_json = "1.0.143"
 
 
 [dev-dependencies]
