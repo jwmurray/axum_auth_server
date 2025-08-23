@@ -1,3 +1,8 @@
+#![allow(unused_variables)]
+#![allow(unused_imports)]
+
+#![allow(dead_code)]
+
 use auth_service::services::hashmap_user_store::HashmapUserStore;
 use auth_service::Application;
 use reqwest::cookie::Jar;

@@ -85,7 +85,7 @@ async fn handle_2fa(
         Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
     };
 
-    let generated_two_fa_code = format!("{:06}", rng().random_range(0..=999_999u32));
+    let generated_two_fa_code = format!("{:06}", rand::rng().random_range(0..=999_999u32));
     let two_fa_code = match TwoFACode::parse(generated_two_fa_code.clone()) {
         Ok(code) => code,
         Err(_) => return (jar, Err(AuthAPIError::UnexpectedError)),
