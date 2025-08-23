@@ -2,7 +2,7 @@ use crate::helpers::TestApp;
 
 #[tokio::test]
 async fn root_returns_auth_ui() {
-    let app = TestApp::new("my_test_db".to_string()).await;
+    let mut app = TestApp::new("my_test_db".to_string()).await;
 
     let response = app.get_root().await;
 
@@ -11,4 +11,6 @@ async fn root_returns_auth_ui() {
         response.headers().get("content-type").unwrap(),
         "text/html; charset=utf-8"
     );
+    
+    app.clean_up().await;
 }

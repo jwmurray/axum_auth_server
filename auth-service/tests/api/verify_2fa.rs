@@ -7,7 +7,7 @@ use crate::helpers::{get_random_email, TestApp};
 
 #[tokio::test]
 async fn should_return_422_if_malformed_input() {
-    let mut app = TestApp::new(Uuid::new_v4().to_string()).await;
+    let app = TestApp::new(Uuid::new_v4().to_string()).await;
 
     let random_email = get_random_email();
     let login_attempt_id = LoginAttemptId::default().as_ref().to_string();

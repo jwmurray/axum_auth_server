@@ -16,11 +16,13 @@ use std::str::FromStr;
 use auth_service::services::data_stores::postgres_user_store::PostgresUserStore;
 
 use auth_service::get_postgres_pool;
-use auth_service::utils::constants::DATABASE_URL;
+use auth_service::get_redis_client;
+use auth_service::utils::constants::{DATABASE_URL, REDIS_HOSTNAME};
 use sqlx::{postgres::PgConnectOptions, postgres::PgPoolOptions, Executor, PgConnection, PgPool};
 
 use auth_service::services::data_stores::hashmap_two_fa_code_store::HashmapTwoFACodeStore;
-use auth_service::services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore;
+// use auth_service::services::data_stores::hashset_banned_token_store::HashsetBannedTokenStore;
+use auth_service::services::data_stores::redis_banned_token_store::RedisBannedTokenStore;
 use auth_service::services::mock_email_client::MockEmailClient;
 
 use auth_service::app_state::{AppState, BannedTokenStoreType, TwoFACodeStoreType};
@@ -41,7 +43,12 @@ impl TestApp {
     pub async fn new(db_name: String) -> Self {
         let db_pool = Self::configure_postgresql(&db_name).await;
         let user_store = Arc::new(RwLock::new(PostgresUserStore::new(db_pool)));
-        let banned_token_store = Arc::new(RwLock::new(HashsetBannedTokenStore::default()));
+        let redis_conn = get_redis_client(REDIS_HOSTNAME.to_owned())
+            .expect("Failed to get Redis client")
+            .get_connection()
+            .expect("Failed to get Redis connection");
+        let redis_conn = Arc::new(RwLock::new(redis_conn));
+        let banned_token_store = Arc::new(RwLock::new(RedisBannedTokenStore::new(redis_conn)));
         let two_fa_code_store = Arc::new(RwLock::new(HashmapTwoFACodeStore::default()));
         let email_client = Arc::new(RwLock::new(MockEmailClient::default()));
         let app_state = AppState::new(
